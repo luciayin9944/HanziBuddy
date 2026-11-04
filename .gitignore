@@ -3,3 +3,5 @@ DerivedData/
 build/
 xcuserdata/
 *.xcuserstate
+HANDOFF.md
+docs/
