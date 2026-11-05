@@ -1,15 +1,18 @@
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
+    @State private var isShowingScanner = false
+
     var body: some View {
         TabView {
             NavigationStack {
-                ContentUnavailableView(
-                    "Scan",
-                    systemImage: "camera.viewfinder",
-                    description: Text("Scan characters")
-                )
-                    .navigationTitle("Scan")
+                HomeView(onStartScanning: {
+                    isShowingScanner = true
+                })
+                .navigationDestination(isPresented: $isShowingScanner) {
+                    ScanFlowView()
+                }
             }
             .tabItem {
                 Label("Scan", systemImage:"camera.viewfinder")
@@ -46,4 +49,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .modelContainer(for: CharacterRecord.self, inMemory: true)
 }
