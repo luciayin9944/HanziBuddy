@@ -75,10 +75,3 @@ struct HomeView: View {
         .accessibilityElement(children: .combine)
     }
 }
-
-#Preview {
-    NavigationStack {
-        HomeView(onStartScanning: {})
-    }
-    .modelContainer(for: CharacterRecord.self, inMemory: true)
-}

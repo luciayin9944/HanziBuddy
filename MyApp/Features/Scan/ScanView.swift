@@ -24,7 +24,6 @@ struct ScanView<CameraContent: View>: View {
     let onRetry: () -> Void
     let onOpenSettings: () -> Void
     let onContinue: (String) -> Void
-    let onUseSampleImage: (() -> Void)?
     let cameraContent: CameraContent
 
     @State private var editedText: String
@@ -35,7 +34,6 @@ struct ScanView<CameraContent: View>: View {
         onRetry: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onContinue: @escaping (String) -> Void,
-        onUseSampleImage: (() -> Void)? = nil,
         @ViewBuilder cameraContent: () -> CameraContent
     ) {
         self.state = state
@@ -43,7 +41,6 @@ struct ScanView<CameraContent: View>: View {
         self.onRetry = onRetry
         self.onOpenSettings = onOpenSettings
         self.onContinue = onContinue
-        self.onUseSampleImage = onUseSampleImage
         self.cameraContent = cameraContent()
         _editedText = State(initialValue: state.recognizedText ?? "")
     }
@@ -88,11 +85,6 @@ struct ScanView<CameraContent: View>: View {
             case .cameraUnavailable:
                 Text("Camera unavailable")
                 Button("Rescan", action: onRetry)
-#if DEBUG
-                if let onUseSampleImage {
-                    Button("Try sample image", action: onUseSampleImage)
-                }
-#endif
 
             case .noText:
                 Text("No Chinese text found")
@@ -135,8 +127,7 @@ struct ScanFlowView: View {
             onContinue: { text in
                 correctedText = text
                 isShowingText = true
-            },
-            onUseSampleImage: useSampleImage
+            }
         ) {
             CameraPreview(session: camera.session)
         }
@@ -232,68 +223,5 @@ struct ScanFlowView: View {
     private func openSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         openURL(url)
-    }
-
-    private func useSampleImage() {
-#if DEBUG
-        let image = UIGraphicsImageRenderer(size: CGSize(width: 1200, height: 400)).image { context in
-            UIColor.white.setFill()
-            context.fill(CGRect(x: 0, y: 0, width: 1200, height: 400))
-            ("大树真高" as NSString).draw(
-                at: CGPoint(x: 80, y: 100),
-                withAttributes: [
-                    .font: UIFont.systemFont(ofSize: 140),
-                    .foregroundColor: UIColor.black
-                ]
-            )
-        }
-        guard let imageData = image.pngData() else {
-            state = .failed("The sample image could not be created.")
-            return
-        }
-        recognizeText(in: imageData)
-#endif
-    }
-}
-
-#Preview("Camera") {
-    NavigationStack {
-        ScanView(
-            state: .ready,
-            onCapture: {},
-            onRetry: {},
-            onOpenSettings: {},
-            onContinue: { _ in }
-        ) {
-            Color.black
-        }
-    }
-}
-
-#Preview("Recognized text") {
-    NavigationStack {
-        ScanView(
-            state: .recognized("大树真高"),
-            onCapture: {},
-            onRetry: {},
-            onOpenSettings: {},
-            onContinue: { _ in }
-        ) {
-            Color.black
-        }
-    }
-}
-
-#Preview("Permission denied") {
-    NavigationStack {
-        ScanView(
-            state: .permissionDenied,
-            onCapture: {},
-            onRetry: {},
-            onOpenSettings: {},
-            onContinue: { _ in }
-        ) {
-            Color.black
-        }
     }
 }

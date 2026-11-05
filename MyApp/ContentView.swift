@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
     @State private var isShowingScanner = false
@@ -45,9 +44,4 @@ struct ContentView: View {
 
         }
     }
-}
-
-#Preview {
-    ContentView()
-        .modelContainer(for: CharacterRecord.self, inMemory: true)
 }
