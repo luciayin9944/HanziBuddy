@@ -105,7 +105,6 @@ struct ScanFlowView: View {
     @State private var isActive = false
     @State private var recognizedText = ""
     @State private var isShowingConfirmation = false
-    @State private var selectedCharacter: String?
     @State private var cameraPreviewSize: CGSize = .zero
 
     var body: some View {
@@ -116,7 +115,6 @@ struct ScanFlowView: View {
             onOpenSettings: openSettings,
             onContinue: { text in
                 recognizedText = text
-                selectedCharacter = nil
                 isShowingConfirmation = true
             }
         ) {
@@ -125,7 +123,6 @@ struct ScanFlowView: View {
         .navigationDestination(isPresented: $isShowingConfirmation) {
             ConfirmCharacterView(
                 recognizedText: recognizedText,
-                onSelectCharacter: { selectedCharacter = $0 },
                 onRescan: { isShowingConfirmation = false }
             )
         }

@@ -2,18 +2,20 @@ import SwiftUI
 
 struct ConfirmCharacterView: View {
     let recognizedText: String
-    let onSelectCharacter: (String) -> Void
     let onRescan: () -> Void
 
-    @State private var selectedCharacter: String?
+    @State private var cardCharacter: String?
+    @State private var cardPronunciations: [CharacterCardView.PronunciationGroup] = []
+    @State private var isShowingCard = false
+    @State private var lookupError = ""
+    @State private var isShowingLookupError = false
+    private let dictionary = DictionaryService()
 
     init(
         recognizedText: String,
-        onSelectCharacter: @escaping (String) -> Void,
         onRescan: @escaping () -> Void
     ) {
         self.recognizedText = recognizedText
-        self.onSelectCharacter = onSelectCharacter
         self.onRescan = onRescan
     }
 
@@ -43,8 +45,14 @@ struct ConfirmCharacterView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 12)], spacing: 12) {
                         ForEach(Array(characters.enumerated()), id: \.offset) { item in
                             Button(item.element) {
-                                selectedCharacter = item.element
-                                onSelectCharacter(item.element)
+                                do {
+                                    cardPronunciations = try dictionary.pronunciations(for: item.element)
+                                    cardCharacter = item.element
+                                    isShowingCard = true
+                                } catch {
+                                    lookupError = error.localizedDescription
+                                    isShowingLookupError = true
+                                }
                             }
                             .font(.title2)
                             .frame(minWidth: 44, minHeight: 44)
@@ -53,17 +61,20 @@ struct ConfirmCharacterView: View {
                         }
                     }
 
-                    if let selectedCharacter {
-                        Text("Selected character: \(selectedCharacter)")
-                            .font(.headline)
-                    }
                 }
             }
             .padding()
         }
         .navigationTitle("Choose character")
-        .onChange(of: recognizedText) { _, _ in
-            selectedCharacter = nil
+        .navigationDestination(isPresented: $isShowingCard) {
+            if let cardCharacter {
+                CharacterCardView(character: cardCharacter, pronunciations: cardPronunciations)
+            }
+        }
+        .alert("Could not open character", isPresented: $isShowingLookupError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(lookupError)
         }
     }
 }
