@@ -17,7 +17,7 @@ struct CameraPreview: View {
                         .position(x: scanFrame.midX, y: scanFrame.midY)
                 }
                 .overlay(alignment: .bottom) {
-                    Text("Place one line inside the frame")
+                    Text("Place Chinese text inside the frame.")
                         .font(.caption)
                         .foregroundStyle(.white)
                         .padding(8)

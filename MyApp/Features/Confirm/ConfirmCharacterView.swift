@@ -39,8 +39,8 @@ struct ConfirmCharacterView: View {
                     Text("No Chinese characters found. Try scanning again.")
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("Choose one character")
-                        .font(.headline)
+//                    Text("Choose one character")
+//                        .font(.headline)
 
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 12)], spacing: 12) {
                         ForEach(Array(characters.enumerated()), id: \.offset) { item in
@@ -60,8 +60,11 @@ struct ConfirmCharacterView: View {
                             .accessibilityLabel("Choose \(item.element)")
                         }
                     }
-
                 }
+//                Button(action: onRescan) {
+//                    Label("Rescan", systemImage: "arrow.clockwise")
+//                }
+//                .buttonStyle(.bordered)
             }
             .padding()
         }

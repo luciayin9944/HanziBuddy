@@ -101,19 +101,19 @@ struct CharacterCardView: View {
 //    }
 //}
 
-#Preview("树") {
-    NavigationStack {
-        CharacterCardView(
-            character: "树",
-            pronunciations: [
-                .init(
-                    pinyin: "shù",
-                    examples: [
-                        .init(word: "树木", pinyin: "shù mù"),
-                        .init(word: "大树", pinyin: "dà shù")
-                    ]
-                )
-            ]
-        )
-    }
-}
+//#Preview("树") {
+//    NavigationStack {
+//        CharacterCardView(
+//            character: "树",
+//            pronunciations: [
+//                .init(
+//                    pinyin: "shù",
+//                    examples: [
+//                        .init(word: "树木", pinyin: "shù mù"),
+//                        .init(word: "橡树", pinyin: "xiàng shù")
+//                    ]
+//                )
+//            ]
+//        )
+//    }
+//}

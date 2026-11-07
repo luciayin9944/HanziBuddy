@@ -63,10 +63,16 @@ struct ScanView<CameraContent: View>: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
                     .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
-                Button("Continue") {
-                    onContinue(text.trimmingCharacters(in: .whitespacesAndNewlines))
+                HStack(spacing: 16) {
+                    Button {
+                        onContinue(text.trimmingCharacters(in: .whitespacesAndNewlines))
+                    } label: {
+                        Text("Continue")
+                    }
+                    .buttonStyle(.bordered)
+
+                    rescanButton
                 }
-                Button("Rescan", action: onRetry)
 
             case .requestingPermission:
                 ProgressView("Checking camera access…")
@@ -77,21 +83,25 @@ struct ScanView<CameraContent: View>: View {
 
             case .cameraUnavailable:
                 Text("Camera unavailable")
-                Button("Rescan", action: onRetry)
+                rescanButton
 
             case .noText:
                 Text("No Chinese text found")
-                Button("Rescan", action: onRetry)
+                rescanButton
 
             case .failed(let message):
                 Text("Scan failed: \(message)")
-                Button("Rescan", action: onRetry)
+                rescanButton
             }
         }
         .padding()
         .navigationTitle("Scan")
     }
 
+    private var rescanButton: some View {
+        Button("Rescan", action: onRetry)
+            .buttonStyle(.bordered)
+    }
 }
 
 /// Connects the scan screen to the camera and on-device text recognition.
