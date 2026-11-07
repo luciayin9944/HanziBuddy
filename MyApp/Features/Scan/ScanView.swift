@@ -12,10 +12,6 @@ enum ScanViewState: Equatable {
     case cameraUnavailable
     case failed(String)
 
-    var recognizedText: String? {
-        if case .recognized(let text) = self { return text }
-        return nil
-    }
 }
 
 struct ScanView<CameraContent: View>: View {
@@ -25,8 +21,6 @@ struct ScanView<CameraContent: View>: View {
     let onOpenSettings: () -> Void
     let onContinue: (String) -> Void
     let cameraContent: CameraContent
-
-    @State private var editedText: String
 
     init(
         state: ScanViewState,
@@ -42,7 +36,6 @@ struct ScanView<CameraContent: View>: View {
         self.onOpenSettings = onOpenSettings
         self.onContinue = onContinue
         self.cameraContent = cameraContent()
-        _editedText = State(initialValue: state.recognizedText ?? "")
     }
 
     var body: some View {
@@ -64,15 +57,15 @@ struct ScanView<CameraContent: View>: View {
                     ProgressView(state == .capturing ? "Taking photo…" : "Recognizing text…")
                 }
 
-            case .recognized:
+            case .recognized(let text):
                 Text("Recognized text")
-                TextEditor(text: $editedText)
-                    .frame(height: 150)
-                    .border(.gray)
+                Text(text)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
                 Button("Continue") {
-                    onContinue(editedText.trimmingCharacters(in: .whitespacesAndNewlines))
+                    onContinue(text.trimmingCharacters(in: .whitespacesAndNewlines))
                 }
-                .disabled(editedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 Button("Rescan", action: onRetry)
 
             case .requestingPermission:
@@ -97,11 +90,6 @@ struct ScanView<CameraContent: View>: View {
         }
         .padding()
         .navigationTitle("Scan")
-        .onChange(of: state) { _, newState in
-            if let text = newState.recognizedText {
-                editedText = text
-            }
-        }
     }
 
 }
@@ -115,8 +103,10 @@ struct ScanFlowView: View {
     @State private var recognizer = TextRecognitionService()
     @State private var state: ScanViewState = .requestingPermission
     @State private var isActive = false
-    @State private var correctedText = ""
-    @State private var isShowingText = false
+    @State private var recognizedText = ""
+    @State private var isShowingConfirmation = false
+    @State private var selectedCharacter: String?
+    @State private var cameraPreviewSize: CGSize = .zero
 
     var body: some View {
         ScanView(
@@ -125,11 +115,19 @@ struct ScanFlowView: View {
             onRetry: startCamera,
             onOpenSettings: openSettings,
             onContinue: { text in
-                correctedText = text
-                isShowingText = true
+                recognizedText = text
+                selectedCharacter = nil
+                isShowingConfirmation = true
             }
         ) {
-            CameraPreview(session: camera.session)
+            CameraPreview(session: camera.session, previewSize: $cameraPreviewSize)
+        }
+        .navigationDestination(isPresented: $isShowingConfirmation) {
+            ConfirmCharacterView(
+                recognizedText: recognizedText,
+                onSelectCharacter: { selectedCharacter = $0 },
+                onRescan: { isShowingConfirmation = false }
+            )
         }
         .onAppear {
             isActive = true
@@ -155,11 +153,6 @@ struct ScanFlowView: View {
             @unknown default:
                 break
             }
-        }
-        .alert("Text ready", isPresented: $isShowingText) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(correctedText)
         }
     }
 
@@ -192,22 +185,23 @@ struct ScanFlowView: View {
 
     private func capturePhoto() {
         guard state == .ready else { return }
+        let previewSize = cameraPreviewSize
         state = .capturing
         camera.capturePhoto { result in
             guard isActive else { return }
             camera.stop()
             switch result {
             case .success(let imageData):
-                recognizeText(in: imageData)
+                recognizeText(in: imageData, previewSize: previewSize)
             case .failure(let error):
                 state = .failed(error.localizedDescription)
             }
         }
     }
 
-    private func recognizeText(in imageData: Data) {
+    private func recognizeText(in imageData: Data, previewSize: CGSize) {
         state = .recognizing
-        recognizer.recognizeText(in: imageData) { result in
+        recognizer.recognizeText(in: imageData, previewSize: previewSize) { result in
             guard isActive else { return }
             switch result {
             case .success(let text):

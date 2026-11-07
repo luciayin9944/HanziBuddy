@@ -5,8 +5,7 @@ struct ConfirmCharacterView: View {
     let onSelectCharacter: (String) -> Void
     let onRescan: () -> Void
 
-    @State private var editedText: String
-    @FocusState private var isEditing: Bool
+    @State private var selectedCharacter: String?
 
     init(
         recognizedText: String,
@@ -16,11 +15,10 @@ struct ConfirmCharacterView: View {
         self.recognizedText = recognizedText
         self.onSelectCharacter = onSelectCharacter
         self.onRescan = onRescan
-        _editedText = State(initialValue: recognizedText)
     }
 
     private var characters: [String] {
-        editedText.unicodeScalars
+        recognizedText.unicodeScalars
             .filter { $0.properties.isUnifiedIdeograph }
             .map(String.init)
     }
@@ -28,24 +26,15 @@ struct ConfirmCharacterView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Check the recognized text")
-                    .font(.headline)
-
-                Text("Fix any mistakes, then tap one Chinese character to learn.")
-                    .foregroundStyle(.secondary)
-
-                TextEditor(text: $editedText)
-                    .focused($isEditing)
-                    .frame(height: 150)
-                    .padding(8)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(.quaternary)
-                    }
+                Text(recognizedText)
+                    .font(.title3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
                     .accessibilityLabel("Recognized text")
 
                 if characters.isEmpty {
-                    Text("No Chinese characters found. Edit the text or rescan.")
+                    Text("No Chinese characters found. Try scanning again.")
                         .foregroundStyle(.secondary)
                 } else {
                     Text("Choose one character")
@@ -54,7 +43,7 @@ struct ConfirmCharacterView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 12)], spacing: 12) {
                         ForEach(Array(characters.enumerated()), id: \.offset) { item in
                             Button(item.element) {
-                                isEditing = false
+                                selectedCharacter = item.element
                                 onSelectCharacter(item.element)
                             }
                             .font(.title2)
@@ -63,19 +52,18 @@ struct ConfirmCharacterView: View {
                             .accessibilityLabel("Choose \(item.element)")
                         }
                     }
-                }
 
-                Button(action: onRescan) {
-                    Label("Rescan", systemImage: "arrow.clockwise")
+                    if let selectedCharacter {
+                        Text("Selected character: \(selectedCharacter)")
+                            .font(.headline)
+                    }
                 }
-                .buttonStyle(.bordered)
             }
             .padding()
         }
-        .scrollDismissesKeyboard(.interactively)
         .navigationTitle("Choose character")
-        .onChange(of: recognizedText) { _, newText in
-            editedText = newText
+        .onChange(of: recognizedText) { _, _ in
+            selectedCharacter = nil
         }
     }
 }
