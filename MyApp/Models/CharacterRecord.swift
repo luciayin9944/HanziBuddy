@@ -1,11 +1,23 @@
 import Foundation
 import SwiftData
 
+struct SavedExampleWord: Codable, Hashable {
+    let word: String
+    let pinyin: String
+}
+
+struct SavedPronunciation: Codable, Hashable {
+    let pinyin: String
+    let examples: [SavedExampleWord]
+}
+
 @Model
 class CharacterRecord {
     @Attribute(.unique) var id: UUID
     var character: String
+    // Kept for records created before pronunciation groups were added.
     var pinyin: String
+    var pronunciations: [SavedPronunciation] = []
     var createdAt: Date
     var isSaved: Bool
     var reviewCount: Int
@@ -13,12 +25,13 @@ class CharacterRecord {
     var learnedAt: Date?
     var lastPracticeResult: String?
 
-    init(character: String, pinyin: String, createdAt: Date = .now) {
+    init(character: String, pronunciations: [SavedPronunciation], createdAt: Date = .now) {
         self.id = UUID()
         self.character = character
-        self.pinyin = pinyin
+        self.pinyin = pronunciations.map(\.pinyin).joined(separator: " / ")
+        self.pronunciations = pronunciations
         self.createdAt = createdAt
-        self.isSaved = false
+        self.isSaved = true
         self.reviewCount = 0
         self.successfulReviewCount = 0
         self.learnedAt = nil
@@ -27,6 +40,13 @@ class CharacterRecord {
 
     var isLearned: Bool {
         learnedAt != nil
+    }
+
+    var savedPronunciations: [SavedPronunciation] {
+        if !pronunciations.isEmpty {
+            return pronunciations
+        }
+        return pinyin.isEmpty ? [] : [SavedPronunciation(pinyin: pinyin, examples: [])]
     }
 
     func recordReview(passed: Bool, at date: Date = .now) {
@@ -48,5 +68,3 @@ class CharacterRecord {
         successfulReviewCount = 0
     }
 }
-
-
