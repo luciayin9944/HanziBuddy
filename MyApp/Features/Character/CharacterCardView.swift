@@ -16,6 +16,10 @@ struct CharacterCardView: View {
     let character: String
     let pronunciations: [PronunciationGroup]
 
+    @State private var speech = SpeechService()
+    @State private var speechError = ""
+    @State private var isShowingSpeechError = false
+
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
@@ -45,12 +49,30 @@ struct CharacterCardView: View {
             .frame(maxWidth: 600)
             .frame(maxWidth: .infinity)
         }
+        .onDisappear { speech.stop() }
+        .alert("Audio unavailable", isPresented: $isShowingSpeechError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(speechError)
+        }
     }
 
     private func pronunciationSection(_ pronunciation: PronunciationGroup) -> some View {
         VStack(spacing: 16) {
-            Text(pronunciation.pinyin)
-                .font(.title.bold())
+            HStack(spacing: 8) {
+                Text(pronunciation.pinyin)
+                    .font(.title.bold())
+
+                Button {
+                    playCharacter(pronunciation)
+                } label: {
+                    Image(systemName: "speaker.wave.2")
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
+                .accessibilityLabel("Play \(character) as \(pronunciation.pinyin)")
+            }
 
             if !pronunciation.examples.isEmpty {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
@@ -60,13 +82,26 @@ struct CharacterCardView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
 
-                            Text(item.element.word)
-                                .font(.title)
+                            HStack(spacing: 4) {
+                                Text(item.element.word)
+                                    .font(.title)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+
+                                Button {
+                                    playWord(item.element.word)
+                                } label: {
+                                    Image(systemName: "speaker.wave.2")
+                                        .frame(width: 44, height: 44)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.tint)
+                                .accessibilityLabel("Play \(item.element.word)")
+                            }
                         }
                         .frame(maxWidth: .infinity)
                         .padding(12)
                         .background(.background, in: RoundedRectangle(cornerRadius: 12))
-                        .accessibilityElement(children: .combine)
                     }
                 }
             }
@@ -74,6 +109,28 @@ struct CharacterCardView: View {
         .frame(maxWidth: .infinity)
         .padding(20)
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 20))
+    }
+
+    private func playCharacter(_ pronunciation: PronunciationGroup) {
+        do {
+            let example = pronunciations.count > 1 ? pronunciation.examples.first?.word : nil
+            try speech.playPronunciation(character: character, exampleWord: example)
+        } catch {
+            showSpeechError(error)
+        }
+    }
+
+    private func playWord(_ word: String) {
+        do {
+            try speech.playWord(word)
+        } catch {
+            showSpeechError(error)
+        }
+    }
+
+    private func showSpeechError(_ error: Error) {
+        speechError = error.localizedDescription
+        isShowingSpeechError = true
     }
 }
 
