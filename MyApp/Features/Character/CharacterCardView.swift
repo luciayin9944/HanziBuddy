@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct CharacterCardView: View {
     struct PronunciationGroup: Identifiable {
@@ -15,10 +16,25 @@ struct CharacterCardView: View {
 
     let character: String
     let pronunciations: [PronunciationGroup]
+    let showsSaveButton: Bool
 
+    init(character: String, pronunciations: [PronunciationGroup], showsSaveButton: Bool = true) {
+        self.character = character
+        self.pronunciations = pronunciations
+        self.showsSaveButton = showsSaveButton
+    }
+
+    @Environment(\.modelContext) private var modelContext
+    @Query private var records: [CharacterRecord]
     @State private var speech = SpeechService()
-    @State private var speechError = ""
-    @State private var isShowingSpeechError = false
+    @State private var didSave = false
+    @State private var errorTitle = ""
+    @State private var errorMessage = ""
+    @State private var isShowingError = false
+
+    private var isSaved: Bool {
+        didSave || records.contains { $0.character == character && $0.isSaved }
+    }
 
     var body: some View {
         ScrollView {
@@ -49,11 +65,30 @@ struct CharacterCardView: View {
             .frame(maxWidth: 600)
             .frame(maxWidth: .infinity)
         }
+        .safeAreaInset(edge: .bottom) {
+            if showsSaveButton && !pronunciations.isEmpty {
+                Button(action: saveCharacter) {
+                    Label(
+                        didSave ? "Saved" : (isSaved ? "Update saved card" : "Save character"),
+                        systemImage: didSave ? "checkmark.circle.fill" : "star"
+                    )
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(didSave)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .frame(maxWidth: 600)
+                .frame(maxWidth: .infinity)
+                .background(.regularMaterial)
+            }
+        }
         .onDisappear { speech.stop() }
-        .alert("Audio unavailable", isPresented: $isShowingSpeechError) {
+        .alert(errorTitle, isPresented: $isShowingError) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text(speechError)
+            Text(errorMessage)
         }
     }
 
@@ -129,8 +164,61 @@ struct CharacterCardView: View {
     }
 
     private func showSpeechError(_ error: Error) {
-        speechError = error.localizedDescription
-        isShowingSpeechError = true
+        showError(title: "Audio unavailable", message: error.localizedDescription)
+    }
+
+    private func saveCharacter() {
+        let savedPronunciations = pronunciations.map { pronunciation in
+            SavedPronunciation(
+                pinyin: pronunciation.pinyin,
+                examples: pronunciation.examples.prefix(2).map {
+                    SavedExampleWord(word: $0.word, pinyin: $0.pinyin)
+                }
+            )
+        }
+
+        do {
+            let chosenCharacter = character
+            let descriptor = FetchDescriptor<CharacterRecord>(
+                predicate: #Predicate { $0.character == chosenCharacter }
+            )
+
+            if let existing = try modelContext.fetch(descriptor).first {
+                let previousPronunciations = existing.pronunciations
+                let previousPinyin = existing.pinyin
+                let wasSaved = existing.isSaved
+                existing.pronunciations = savedPronunciations
+                existing.pinyin = savedPronunciations.map(\.pinyin).joined(separator: " / ")
+                existing.isSaved = true
+                do {
+                    try modelContext.save()
+                } catch {
+                    existing.pronunciations = previousPronunciations
+                    existing.pinyin = previousPinyin
+                    existing.isSaved = wasSaved
+                    throw error
+                }
+            } else {
+                let record = CharacterRecord(character: character, pronunciations: savedPronunciations)
+                modelContext.insert(record)
+                do {
+                    try modelContext.save()
+                } catch {
+                    modelContext.delete(record)
+                    throw error
+                }
+            }
+
+            didSave = true
+        } catch {
+            showError(title: "Could not save character", message: error.localizedDescription)
+        }
+    }
+
+    private func showError(title: String, message: String) {
+        errorTitle = title
+        errorMessage = message
+        isShowingError = true
     }
 }
 

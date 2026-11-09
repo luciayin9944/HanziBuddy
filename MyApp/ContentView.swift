@@ -19,12 +19,7 @@ struct ContentView: View {
             
 
             NavigationStack {
-                ContentUnavailableView(
-                    "Saved characters",
-                    systemImage: "star",
-                    description: Text("Learning and learned")
-                )
-                    .navigationTitle("Saved")
+                SavedView()
             }
             .tabItem {
                 Label("Saved", systemImage: "star")
