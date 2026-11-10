@@ -53,11 +53,11 @@ class CharacterRecord {
         guard !isLearned else { return }
 
         reviewCount += 1
-        lastPracticeResult = passed ? "knowIt" : "practiceAgain"
+        lastPracticeResult = passed ? "correct" : "incorrect"
 
         if passed {
             successfulReviewCount += 1
-            if successfulReviewCount >= 4 {
+            if successfulReviewCount >= 3 {
                 learnedAt = date
             }
         }

@@ -55,7 +55,7 @@ struct SavedView: View {
                             description: Text(
                                 selectedSection == .learning
                                     ? "Saved characters appear here until they are learned."
-                                    : "Four successful reviews move a character here."
+                                    : "Three successful quizzes move a character here."
                             )
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -276,7 +276,7 @@ struct SavedView: View {
 //
 //    let learnedRecords = [long, tall, wood, heart]
 //    for record in learnedRecords {
-//        for _ in 0..<4 {
+//        for _ in 0..<3 {
 //            record.recordReview(passed: true)
 //        }
 //    }

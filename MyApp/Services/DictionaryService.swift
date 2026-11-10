@@ -63,6 +63,57 @@ struct DictionaryService {
         }
     }
 
+    /// Returns real words containing the character whose full pinyin differs from the answer.
+    func wordDistractors(
+        containing character: String,
+        excludingPinyin answerPinyin: String,
+        excludingWords answerWords: Set<String>
+    ) throws -> [String] {
+        guard let databaseURL else { throw DictionaryError.missingDatabase }
+        var connection: OpaquePointer?
+        let status = sqlite3_open_v2(databaseURL.path, &connection, SQLITE_OPEN_READONLY, nil)
+        guard status == SQLITE_OK, let connection else {
+            sqlite3_close(connection)
+            throw DictionaryError.databaseFailure("Could not open database")
+        }
+        defer { sqlite3_close(connection) }
+
+        let statement = try prepare(
+            """
+            SELECT DISTINCT w.simplified, w.pinyin, w.character_count, w.definition
+            FROM example_matches AS e
+            JOIN words AS w ON w.id = e.word_id
+            WHERE e.character = ?
+            """,
+            in: connection
+        )
+        defer { sqlite3_finalize(statement) }
+        try bind(character, at: 1, to: statement, in: connection)
+
+        var pronunciationsByWord: [String: Set<String>] = [:]
+        var suitableWords = Set<String>()
+        while true {
+            let result = sqlite3_step(statement)
+            if result == SQLITE_DONE { break }
+            guard result == SQLITE_ROW else { throw failure(in: connection) }
+            let word = text(at: 0, in: statement)
+            pronunciationsByWord[word, default: []].insert(text(at: 1, in: statement))
+            let length = sqlite3_column_int(statement, 2)
+            let definition = text(at: 3, in: statement).lowercased()
+            if (2...4).contains(length) &&
+                !["surname", "variant of", "archaic", "slang", "county", "city"]
+                    .contains(where: definition.contains) {
+                suitableWords.insert(word)
+            }
+        }
+
+        return suitableWords.filter { word in
+            !answerWords.contains(word) &&
+                !pronunciationsByWord[word, default: []].contains(answerPinyin)
+        }
+        .shuffled()
+    }
+
     private func contains(_ character: String, in connection: OpaquePointer) throws -> Bool {
         let statement = try prepare(
             "SELECT 1 FROM characters WHERE character = ? LIMIT 1",
