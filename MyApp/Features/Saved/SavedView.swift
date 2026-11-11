@@ -1,5 +1,21 @@
 import SwiftUI
 import SwiftData
+import UIKit
+
+private struct ExportFile: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) { }
+}
 
 struct SavedView: View {
     private enum SavedSection: String {
@@ -11,10 +27,11 @@ struct SavedView: View {
     @Query(sort: \CharacterRecord.createdAt, order: .reverse) private var records: [CharacterRecord]
 
     @State private var selectedSection: SavedSection = .learning
-    @State private var pendingMove: CharacterRecord?
-    @State private var isConfirmingMove = false
     @State private var moveError = ""
     @State private var isShowingMoveError = false
+    @State private var exportFile: ExportFile?
+    @State private var exportError = ""
+    @State private var isShowingExportError = false
 
     private var learningRecords: [CharacterRecord] {
         records.filter { $0.isSaved && !$0.isLearned }
@@ -47,6 +64,21 @@ struct SavedView: View {
                     .padding(.top, 8)
                     .frame(maxWidth: 600)
                     .frame(maxWidth: .infinity)
+
+                    if selectedSection == .learned {
+                        HStack {
+                            Spacer()
+                            Button(action: exportLearned) {
+                                Label("Export CSV", systemImage: "square.and.arrow.up")
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(learnedRecords.isEmpty)
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 12)
+                        .frame(maxWidth: 600)
+                        .frame(maxWidth: .infinity)
+                    }
 
                     if displayedRecords.isEmpty {
                         ContentUnavailableView(
@@ -84,24 +116,18 @@ struct SavedView: View {
                 selectedSection = .learned
             }
         }
-        .confirmationDialog(
-            "Move \(pendingMove?.character ?? "character") back to Learning?",
-            isPresented: $isConfirmingMove,
-            titleVisibility: .visible
-        ) {
-            Button("Move back to Learning", role: .destructive) {
-                if let pendingMove {
-                    moveBackToLearning(pendingMove)
-                }
-                pendingMove = nil
-            }
-        } message: {
-            Text("Its successful review count will reset to zero.")
-        }
         .alert("Could not move character", isPresented: $isShowingMoveError) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(moveError)
+        }
+        .alert("Could not export characters", isPresented: $isShowingExportError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(exportError)
+        }
+        .sheet(item: $exportFile) { file in
+            ShareSheet(url: file.url)
         }
     }
 
@@ -166,8 +192,7 @@ struct SavedView: View {
             if isLearned {
                 Menu {
                     Button("Move back to Learning", systemImage: "arrow.uturn.backward") {
-                        pendingMove = record
-                        isConfirmingMove = true
+                        moveBackToLearning(record)
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -199,6 +224,15 @@ struct SavedView: View {
             record.successfulReviewCount = successfulReviewCount
             moveError = error.localizedDescription
             isShowingMoveError = true
+        }
+    }
+
+    private func exportLearned() {
+        do {
+            exportFile = ExportFile(url: try CSVExportService().exportLearnedCharacters(learnedRecords))
+        } catch {
+            exportError = error.localizedDescription
+            isShowingExportError = true
         }
     }
 }
