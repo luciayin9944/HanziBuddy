@@ -19,7 +19,7 @@ HanziBuddy is an iOS app that helps children learn Chinese characters they encou
 | **Swift and SwiftUI** | Build the screens, navigation, scan states, character cards, and quiz interface. |
 | **AVFoundation** | Capture photos from the camera and synthesize Mandarin speech. For a character with multiple pronunciations, an example word can provide context for speech playback. |
 | **Apple Vision** | Recognize Simplified and Traditional Chinese text on the device. The recognition area is mapped to the scan frame shown over the camera preview. |
-| **SQLite and CC-CEDICT** | Provide a bundled, read-only dictionary for character pronunciations and example word lookup. |
+| **SQLite and HSK 3.0 vocabulary** | Provide the active bundled, read-only dictionary for character pronunciations and example word lookup. The original CC-CEDICT database remains in the project. |
 | **SwiftData** | Store saved characters, their pronunciations and word examples, review counts, and learned dates locally. |
 
 The dictionary and learning records serve different purposes: the bundled SQLite file supplies reference data, while SwiftData holds each user's progress. The CSV export includes character, pinyin, learned date, and review count.
@@ -28,7 +28,7 @@ The dictionary and learning records serve different purposes: the bundled SQLite
 
 The app concentrates on scanning, saving, and reviewing rather than adding a large set of learning activities. Its character cards use large text and clear controls for young learners.
 
-The bundled dictionary covers the 3,500 simplified characters in the first-level list of the *General Standard Chinese Characters*. A scanned character outside that set may not open a card.
+The active HSK dictionary covers 3,000 simplified characters. A scanned character outside that set may not open a card. HSK vocabulary levels help order example words, but do not guarantee that every example is suitable for young children. Previously saved cards keep the examples already stored in SwiftData; newly saved cards use the active HSK dictionary.
 
 ## Run locally
 
@@ -36,4 +36,4 @@ Open `ChineseScanner.xcodeproj` in Xcode and run the app on an iPhone with iOS 1
 
 ## Dictionary attribution
 
-The bundled `cedict.sqlite` is derived from CC-CEDICT and distributed under **Creative Commons Attribution-ShareAlike 4.0 International**. See [dictionary attribution and source details](MyApp/Resources/DICTIONARY_LICENSES.md) for the source, license, and data preparation notes.
+The active `hsk30.sqlite` was built from [ivankra/hsk30](https://github.com/ivankra/hsk30) vocabulary data. The original `cedict.sqlite` remains bundled and is derived from CC-CEDICT under **Creative Commons Attribution-ShareAlike 4.0 International**. See [dictionary attribution and source details](MyApp/Resources/DICTIONARY_LICENSES.md). Review rights to redistribute the underlying HSK list before publishing the app.

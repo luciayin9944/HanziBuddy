@@ -32,3 +32,17 @@ above document the inputs used to create this copy.
 The exported CC-CEDICT copy used here is the editor site's latest
 non-verified export. The app must make this attribution and license link
 accessible to users before distribution.
+
+## Active HSK 3.0 dictionary
+
+`hsk30.sqlite` is a separate, read-only database built from the
+`hsk30-chars.csv` and `hsk30-expanded.csv` files in
+https://github.com/ivankra/hsk30. It contains 3,000 characters and their
+associated HSK vocabulary entries. Character readings are derived from
+aligned vocabulary pinyin; readings absent from those entries were filled
+from the CC-CEDICT database and marked `cedict_only` in the `source` column.
+
+The upstream repository includes an MIT license, but its README notes
+uncertainty about ownership of the underlying official HSK list. Review
+redistribution rights and attribution before publishing this database in an
+app.

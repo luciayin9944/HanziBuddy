@@ -12,7 +12,8 @@ enum DictionaryError: LocalizedError {
         case .missingDatabase:
             "The Chinese dictionary is missing from this app."
         case .unsupportedCharacter:
-            "This character is outside the current 3,500-character dictionary."
+            // "This character is outside the current 3,500-character dictionary."
+            "This character is outside the current 3,000-character HSK dictionary."
         case .missingPronunciation:
             "The dictionary has no pronunciation for this character."
         case .databaseFailure:
@@ -25,7 +26,12 @@ enum DictionaryError: LocalizedError {
 struct DictionaryService {
     let databaseURL: URL?
 
-    init(databaseURL: URL? = Bundle.main.url(forResource: "cedict", withExtension: "sqlite")) {
+    // CC-CEDICT lookup:
+    // init(databaseURL: URL? = Bundle.main.url(forResource: "cedict", withExtension: "sqlite")) {
+    //     self.databaseURL = databaseURL
+    // }
+
+    init(databaseURL: URL? = Bundle.main.url(forResource: "hsk30", withExtension: "sqlite")) {
         self.databaseURL = databaseURL
     }
 
@@ -153,6 +159,7 @@ struct DictionaryService {
         pronunciation: String,
         from connection: OpaquePointer
     ) throws -> [CharacterCardView.Example] {
+        /* CC-CEDICT example lookup:
         let statement = try prepare(
             """
             SELECT DISTINCT w.simplified, w.pinyin
@@ -166,6 +173,21 @@ struct DictionaryService {
               AND lower(w.definition) NOT LIKE '%county%'
               AND lower(w.definition) NOT LIKE '%city%'
             ORDER BY w.character_count, length(w.definition), w.simplified
+            LIMIT 2
+            """,
+            in: connection
+        )
+        */
+
+        // HSK examples use the vocabulary level, then word length, as the display order.
+        let statement = try prepare(
+            """
+            SELECT w.simplified, w.pinyin
+            FROM example_matches AS e
+            JOIN words AS w ON w.id = e.word_id
+            WHERE e.character = ? AND e.pinyin_numbered = ?
+            GROUP BY w.simplified, w.pinyin
+            ORDER BY MIN(w.hsk_rank), MIN(w.character_count), w.simplified
             LIMIT 2
             """,
             in: connection
